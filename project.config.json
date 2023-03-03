@@ -1,0 +1,66 @@
+{
+	"projectid": "1112006301_%E8%83%B6%E5%B7%9E%E5%AE%9E%E9%AA%8C%E4%B8%AD%E5%AD%A6%E8%87%AA%E5%8A%A9%E8%B4%B4%E8%B4%B4%E5%A2%99",
+	"setting": {
+		"urlCheck": false,
+		"es6": true,
+		"postcss": false,
+		"minified": true,
+		"newFeature": true,
+		"autoAudits": false,
+		"nodeModules": true,
+		"uploadWithSourceMap": true,
+		"uglifyFileName": true,
+		"remoteDebugLogEnable": true,
+		"prefetch": true
+	},
+	"compileType": "miniprogram",
+	"createTime": 1629109829020,
+	"accessTime": 1629109829020,
+	"packOptions": {
+		"ignore": []
+	},
+	"debugOptions": {
+		"hidedInDevtools": []
+	},
+	"qqappid": "1112006301",
+	"projectname": "%E8%83%B6%E5%B7%9E%E5%AE%9E%E9%AA%8C%E4%B8%AD%E5%AD%A6%E8%87%AA%E5%8A%A9%E8%B4%B4%E8%B4%B4%E5%A2%99",
+	"cloudfunctionRoot": "cloudfunctions/",
+	"scripts": {
+		"beforeCompile": "",
+		"beforePreview": "",
+		"beforeUpload": ""
+	},
+	"qqLibVersion": "1.55.2",
+	"condition": {
+		"search": {
+			"current": -1,
+			"list": []
+		},
+		"conversation": {
+			"current": -1,
+			"list": []
+		},
+		"game": {
+			"currentL": -1,
+			"list": []
+		},
+		"plugin": {
+			"list": []
+		},
+		"gamePlugin": {
+			"list": []
+		},
+		"miniprogram": {
+			"current": 0,
+			"list": [
+				{
+					"id": 0,
+					"name": "更新编译",
+					"pathName": "pages/index/index",
+					"query": "",
+					"scene": ""
+				}
+			]
+		}
+	}
+}

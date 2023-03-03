@@ -1,0 +1,11 @@
+version: "3"
+services:
+  miniapp-builder:
+    image: qqminiapp/build:latest
+    container_name: miniapp-builder
+    working_dir: /tmp
+    volumes:
+      - '..:/tmp'
+    env_file:
+      - ./.env
+

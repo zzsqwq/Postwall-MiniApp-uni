@@ -1,0 +1,42 @@
+.hbuilderx/
+
+transform.log
+
+unpackage/
+
+# 避免提交的文件夹
+miniprogram_npm
+node_modules/
+.vscode
+
+# 避免提交的文件
+yarn.lock
+yarn-error.lock
+
+# idea
+.idea/
+
+# font 
+/font
+*.ttf
+*.ttc
+*.tof
+
+# ssl
+/ssl
+
+# secrets 
+**/.env
+
+# cache
+__pycache__/
+
+# cloudfunctions
+
+cloudfunctions/
+**/firstui
+**/thorui
+
+
+# MacOS
+*.DS_Store
