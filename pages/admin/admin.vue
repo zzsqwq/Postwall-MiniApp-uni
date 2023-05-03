@@ -5,7 +5,7 @@
                          @cancel="actionSheetCancel"></fui-actionsheet>
         <fui-swipeaction-group>
             <fui-collapse accordion @change="changeTest">
-                <fui-swipe-action v-for="(item, index) in postList" :key="item._id"
+                <fui-swipe-action v-for="(item, index) in postList" :key="item.postId"
                                   :buttons="isAdmin? (isRecently? adminRecentlyButtons:adminButtons) : userButtons"
                                   @click="handleSwiperAction" :param="index">
                     <fui-collapse-item :index="index">
