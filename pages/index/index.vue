@@ -99,7 +99,7 @@
 				userOpenid: '',
 				appInstance: app,
 				postTypeArray: ['提问', '吐槽', '表白', '寻物', '寻人'],
-				forbiddenArray: [],
+				bannedUsers: [],
 				chosenTypeIndex: 0,
 				lastSubmitTime: 0,
 				submitList: [],
@@ -133,7 +133,7 @@
 					desc: '欢迎加入我们！',
 					image: 'cloud://postwall-4gy7eykl559a475a.706f-postwall-4gy7eykl559a475a-1300413137/banner/BDFFBACD8C9D6651B62C7AB705862A5C.png'
 				}, ],
-				noticeShow: true,
+				noticeShow: false,
 				noticeStr: ""
 			};
 		},
@@ -141,89 +141,48 @@
 			// return custom share data when user share.
 		},
 		async onLoad(options) {
-			const updateManager = uni.getUpdateManager();
-			updateManager.onCheckForUpdate(function(res) {
-				// 请求完新版本信息的回调
-				console.log('Has update ', res.hasUpdate);
+			// Do some initialize when page load.
+			console.log("Page loaded.")
+			// Init token and isAdmin
+			await app.login().then(res => {
+				this.isAdmin = res.isAdmin;
+				this.token = res.token;
+			}).catch(err => {
+				console.error("Login failed.", err);
 			});
-			updateManager.onUpdateReady(function() {
-				uni.showModal({
-					title: '更新提示',
-					content: '新版本已经准备好，是否重启应用加载？',
-
-					success(res) {
-						if (res.confirm) {
-							// 新的版本已经下载好，调用 applyUpdate 应用新版本并重启
-							updateManager.applyUpdate();
-						}
-					}
-				});
-			});
-			updateManager.onUpdateFailed(function() {
-				console.error('New version update failed.');
-				uni.showToast({
-					title: '新版本更新失败',
-					icon: 'none',
-					duration: 500
-				});
-			});
+			// Checkup update
+			this.checkUpdates();
+			// Setup share menu
 			uni.showShareMenu({
 				showShareItems: ['qq', 'qzone', 'wechatFriends', 'wechatMoment']
 			});
-			this.getTypeArray();
-			this.getForbiddenArray();
-			await this.updateUserStatus();
-			let fs = uni.getFileSystemManager();
-			fs.readdir({
-				dirPath: `${uni.env.USER_DATA_PATH}`,
-				success: (res) => {
-					res.files.forEach((file) => {
-						if (file.slice(-3) === 'png') {
-							fs.unlink({
-								filePath: uni.env.USER_DATA_PATH + '/' + file,
-								success: (res) => {
-									const logger = uni.getRealtimeLogManager();
-									logger.info('removed ', file, ' result ', res);
-								},
-								fail: (res) => {
-									console.error(res);
-								}
-							});
-						}
-					});
-				}
-			});
+			// Get post types
+			this.getAvailableTypes();
+			// Get banned users
+			this.getBannedUsers();
+			// Get Notice
+			// this.getNotice();
+			// Gt banner
+			// this.getBanner();
+
+			// Delete abundant images
+			this.deleteAbundantFiles()
 		},
 		onReady() {
 			// Do something when page ready.
-			const db = qq.cloud.database(); // return important!!!!
-
-			db.collection('notice')
-				.get()
-				.then((res) => {
-					if (res.data.length) {
-						this.noticeStr = res.data[0].notice;
-						this.noticeShow = this.noticeStr ? true : false;
-					} else {
-						this.noticeShow = false;
-					}
-				})
-
-			db.collection('banner')
-				.get()
-				.then((res) => {
-					console.log(res)
-					this.items = res.data
-				})
+			console.log("Page ready.")
 		},
 		onShow() {
 			// Do something when page show.
+			console.log("Page show.")
 		},
 		onHide() {
 			// Do something when page hide.
+			console.log("Page hide.")
 		},
 		onUnload() {
 			// Do something when page close.
+			console.log("Page unload.")
 		},
 		onPullDownRefresh() {
 			this.refresh();
@@ -238,80 +197,79 @@
 			});
 		},
 		methods: {
+			deleteAbundantFiles() {
+				let fs = uni.getFileSystemManager();
+				fs.readdir({
+					dirPath: `${uni.env.USER_DATA_PATH}`,
+					success: (res) => {
+						res.files.forEach((file) => {
+							if (file.slice(-3) === 'png') {
+								fs.unlink({
+									filePath: uni.env.USER_DATA_PATH + '/' + file,
+									success: (res) => {
+										console.log("Delete file ", file, "success.", res)
+									},
+									fail: (res) => {
+										console.error(res);
+									}
+								});
+							}
+						});
+					}
+				});
+			},
+			checkUpdates() {
+				const updateManager = uni.getUpdateManager();
+				updateManager.onUpdateReady(function() {
+					uni.showModal({
+						title: '更新提示',
+						content: '新版本已经准备好，是否重启应用加载？',
+						success(res) {
+							if (res.confirm) {
+								// 新的版本已经下载好，调用 applyUpdate 应用新版本并重启
+								updateManager.applyUpdate();
+							}
+						}
+					});
+				});
+				updateManager.onUpdateFailed(function() {
+					console.error('新版本更新失败。');
+					uni.showToast({
+						title: '新版本更新失败',
+						icon: 'none',
+						duration: 500
+					});
+				});
+
+			},
 			closeNotice() {
 				this.noticeShow = false;
 			},
-			getForbiddenArray() {
-				qq.cloud.callFunction({
-					name: "getForbiddenArray",
-				}).then(res => {
-					this.setData({
-						forbiddenArray: res.result.data
-					})
+			getBannedUsers() {
+				this.http.get("/users/banned").then(res => {
+					this.bannedUsers = res.data.data;
+				}).catch(err => {
+					console.error(err);
 				})
 			},
 			swiperChange(e) {
 				this.current = e.detail.current;
 			},
-			getTypeArray() {
-				qq.cloud
-					.callFunction({
-						name: 'getTypeArray'
-					})
-					.then((res) => {
-						this.setData({
-							postTypeArray: res.result.data[0].typelist
-						});
-					});
+			getAvailableTypes() {
+				this.http.get('/config/postTypes').then(res => {
+					this.postTypeArray = res.data.data;
+				}).catch(err => {
+					console.error(err);
+				})
 			},
-			// Async to update userOpenid and isAdmin info
-			async updateUserStatus() {
-				// 多层 Promise 最终只 await 最外层的 Promise 即可
-				return await qq.cloud
-					.callFunction({
-						name: 'getOpenid'
-					})
-					.then((res) => {
-						console.log('Get openid res', res);
-						this.userOpenid = res.result.openid;
-						const db = qq.cloud.database(); // return important!!!!
-
-						return db
-							.collection('adminList')
-							.get()
-							.then((res) => {
-								let adminList = res.data;
-								console.log('adminList is ', adminList);
-								this.isAdmin = false;
-
-								for (let i = 0; i < adminList.length; i++) {
-									if (adminList[i].open_id === this.userOpenid) {
-										this.isAdmin = true;
-										break;
-									}
-								}
-
-								console.log('The user isAdmin is ', this.isAdmin);
-								console.log('The user openid is ', this.userOpenid);
-								this.setData({
-									isAdmin: this.isAdmin,
-									userOpenid: this.userOpenid
-								});
-							});
-					})
-					.catch((error) => {
-						console.error('updateUserStatus error, ', error);
-					});
-			},
-
 			refresh() {
 				const imageList = this.imageList;
 				const submitList = this.submitList;
 				imageList.splice(0, imageList.length);
 				submitList.splice(0, submitList.length);
 				this.$refs.upload.urls = imageList
-				this.getTypeArray();
-				this.getForbiddenArray();
+				this.getAvailableTypes();
+				this.getBannedUsers();
 				this.setData({
 					postType: '提问',
 					postTitle: '',
@@ -322,47 +280,38 @@
 					imageList: imageList,
 					submitList: submitList
 				});
-				
-				const db = qq.cloud.database(); // return important!!!!
-				
-				db.collection('notice')
-					.get()
-					.then((res) => {
-						if (res.data.length) {
-							this.noticeStr = res.data[0].notice;
-						} else {
-							this.noticeShow = false;
-						}
-					})
-				
-				db.collection('banner')
-					.get()
-					.then((res) => {
-						console.log(res)
-						this.items = res.data
-					})
+
+				// Get Notice
+				// this.getNotice();
+				// Gt banner
+				// this.getBanner();
 			},
 
-			async uploadFilesToCloud() {
-				const timestamp = new Date().getTime() / 1000;
+			async uploadFilesToCOS() {
+				const timestamp = new Date().getTime();
+				let fs = uni.getFileSystemManager();
 				let imageList = this.imageList;
 				let submitList = this.submitList;
 				let uploadTasks = [];
 
-				console.log("imageList ", imageList)
-				for (let i = 0; i < imageList.length; i++) {
-
-					let task = qq.cloud
-						.uploadFile({
-							cloudPath: timestamp + '/' + i + imageList[i].slice(-4),
-							filePath: imageList[i]
+				for(let i=0;i<imageList.length;i++) {
+					let task = this.http.post("/file/upload/url", {
+						data: {
+							fileName : i + imageList[i].slice(-4),
+							folder : timestamp
+						}
+					}).then(res => {
+						let url = res.data.data.url;
+						let key = res.data.data.key;
+						submitList.push(key);
+						return uni.request({
+							url: url,
+							method: 'PUT',
+							data: fs.readFileSync(imageList[i]),
 						})
-						.then((res) => {
-							submitList.push(res.fileID);
-						})
-						.catch((res) => {
-							console.error(res);
-						});
+					}).catch(err => {
+						console.error(err);
+					})
 					uploadTasks.push(task);
 				}
 
@@ -370,23 +319,26 @@
 					console.log('uploadTasks responses is ', responses);
 				});
 			},
-
 			/**
 			 * @brief submit a post
 			 * @param event the event
 			 * @param action 0 is formsubmit, 1 is blur submit
 			 */
-			submitPost(event) {
-				for (let i = 0; i < this.forbiddenArray.length; i++) {
-					if (this.userOpenid === this.forbiddenArray[i].open_id && this.forbiddenArray[i]
-						.count >= 3) {
+			async submitPost(event) {
+				// Check if user is banned
+				let isBanned = false
+				await this.http.get("/users/isBanned").then(res => {
+					isBanned = res.data.data;
+					if(res.data.data) {
 						uni.showModal({
 							title: '您已被禁止投稿',
 							content: '因您多次发表违规订单，已被禁止投稿。如有疑问请联系贴贴墙',
 							showCancel: false,
 						})
-						return;
 					}
+				})
+				if(isBanned) {
+					return;
 				}
 
 				this.imageList = this.$refs.upload.urls;
@@ -408,13 +360,13 @@
 
 				let postType = this.postType;
 				let postTitle = this.postTitle;
-				let postText = this.postText;
+				let postContent = this.postText;
 				let postContactQQ = this.postContactQQ;
 				let postContactWechat = this.postContactWechat;
 				let postContactPhone = this.postContactPhone;
 				let submitList = this.submitList;
 
-				if (!postType || !postTitle || !postText) {
+				if (!postType || !postTitle || !postContent) {
 					let content = '您的';
 
 					if (!postType) {
@@ -425,7 +377,7 @@
 						content = content + '投稿标题' + '、';
 					}
 
-					if (!postText) {
+					if (!postContent) {
 						content = content + '投稿内容' + '、';
 					}
 
@@ -437,6 +389,7 @@
 					});
 					return;
 				}
+
 
 				uni.showModal({
 					title: '投稿确认提示',
@@ -452,25 +405,19 @@
 								title: '订单投递中，请稍作等待',
 								mask: true
 							});
-							this.uploadFilesToCloud()
+							this.uploadFilesToCOS()
 								.then((res) => {
-									const db = qq.cloud.database();
-									return db.collection('postwall').add({
+									return this.http.post("/posts", {
 										data: {
-											post_time: timestamp,
-											post_type: postType,
-											post_title: postTitle,
-											post_text: postText,
-											post_contact_qq: postContactQQ,
-											post_contact_wechat: postContactWechat,
-											post_contact_tel: postContactPhone,
-											post_user_openid: this.userOpenid,
-											post_user_done: false,
-											post_done: false,
-											post_date: new Date(),
-											image_list: submitList
+											postType: postType,
+											postTitle: postTitle,
+											postContent: postContent,
+											imageList: submitList,
+											contactQQ: postContactQQ,
+											contactWechat: postContactWechat,
+											contactTelephone: postContactPhone,
 										}
-									});
+									})
 								})
 								.then((res) => {
 									submitList.slice(0, submitList.length);
