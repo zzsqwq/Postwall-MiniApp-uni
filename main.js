@@ -19,7 +19,9 @@ app.$mount();
 //初始化请求配置项
 http.create({
     //接口域名
+    // host: 'http://zzsqwq.cn:12080/api/v1',
     host: 'http://127.0.0.1:8080/api/v1',
+    // host: 'http://192.168.31.249:8080/api/v1',
     header: {
         'content-type': 'application/json',
     }

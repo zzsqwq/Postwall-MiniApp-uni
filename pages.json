@@ -24,7 +24,7 @@
 			}
 		},
 		{
-			"path": "pages/declaration/declaration",
+			"path": "pages/intro/intro",
 			"style": {
 				"navigationBarTitleText": "使用说明"
 			}

@@ -115,7 +115,7 @@ export default {
             }, {
                 text: '使用说明',
                 openType: 'navigate',
-                url: "/pages/declaration/declaration"
+                url: "/pages/intro/intro"
             }],
             tabs: ['等待发布', '近期发布'],
             adminButtons: [{
@@ -163,23 +163,48 @@ export default {
     onShareAppMessage() {
         // return custom share data when user share.
     },
-    async onLoad() {
+    async onLoad(options) {
         // Init token and isAdmin
-        await app.login().then(res => {
+        let option = uni.getLaunchOptionsSync();
+        let school = "";
+        if(option.query) {
+            if(option.query.school) {
+                school = option.query.school;
+            }
+        }
+        await app.login(school).then(res => {
             this.isAdmin = res.isAdmin;
             this.token = res.token;
+            if(res.school !== "") {
+                this.school = res.school;
+                this.schoolName = res.schoolName;
+                console.log("School is:", this.school)
+                console.log("SchoolName is:", this.schoolName)
+            } else {
+                uni.showModal({
+                    title: '未绑定学校',
+                    content: "未绑定学校，请先从小尾巴进入绑定。",
+                    showCancel: false
+                });
+            }
         }).catch(err => {
             console.error("Login failed.", err);
+            uni.showModal({
+                title: '登录失败',
+                content: err,
+                showCancel: false
+            });
         });
+        console.log("Has got token and isAdmin.")
         // this.getRejectArray();
         // this.getForbiddenArray();
+        this.refresh(true)
     },
     onShow() {
-        // Hide red dot on admin page
         uni.hideTabBarRedDot({
             index: 1
         }); // If allPostList has changed, refresh
-        this.refresh(true)
+        // Hide red dot on admin page
 
         // this.isPostListChanged()
         //     .then((res) => {
@@ -250,10 +275,9 @@ export default {
                         }
                     }).then((res) => {
                         let downloadUrl = res.data.data;
-                        return uni.downloadFile({
+                        uni.downloadFile({
                             url: downloadUrl,
                         }).then((res) => {
-                            console.log(res.tempFilePath)
                             imageList[j] = res.tempFilePath;
                             this.photoArray[i][j] = res.tempFilePath;
                         })
@@ -928,24 +952,24 @@ page {
 
 .fui-item__box {
     width: 100%;
-    padding: 26 rpx 32 rpx;
+    padding: 26rpx 32rpx;
     box-sizing: border-box;
     display: flex;
     align-items: center;
 }
 
 .fui-logo {
-    width: 48 rpx;
-    height: 48 rpx;
-    margin-right: 24 rpx;
+    width: 48rpx;
+    height: 48rpx;
+    margin-right: 24rpx;
     display: block;
 }
 
 .fui-descr {
     width: 100%;
-    padding: 32 rpx;
-    font-size: 28 rpx;
-    line-height: 52 rpx;
+    padding: 32rpx;
+    font-size: 28rpx;
+    line-height: 52rpx;
     color: #7F7F7F;
     word-break: break-all;
     box-sizing: border-box;
@@ -955,12 +979,12 @@ page {
     /* #ifndef APP-NVUE */
     width: 100%;
     /* #endif */
-    padding-bottom: 32 rpx;
-    padding-top: 32 rpx;
+    padding-bottom: 32rpx;
+    padding-top: 32rpx;
 }
 
 .swiper__wrap {
-    height: 500 rpx;
+    height: 500rpx;
 }
 
 .swiper-item {
@@ -972,7 +996,7 @@ page {
 
 .checkicon__class {
     position: absolute;
-    margin: 0 0 0 -170 rpx;
+    margin: 0 0 0 -170rpx;
     display: inline-block;
 }
 </style>

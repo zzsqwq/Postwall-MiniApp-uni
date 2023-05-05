@@ -70,7 +70,7 @@
 				}, {
 					text: '使用说明',
 					openType: 'navigate',
-					url: "/pages/declaration/declaration"
+					url: "/pages/intro/intro"
 				}],
 				menus: [{
 					text: '分享好友',

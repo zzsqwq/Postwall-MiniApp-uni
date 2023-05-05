@@ -2,6 +2,10 @@
 export default {
     onLaunch: function () {
         console.log('App Launch')
+        // 开启 debug
+        qq.setEnableDebug({
+            enableDebug: true
+        })
         // this.login().then((res) => {
         //     console.log(res)
         // }).catch((err) => {
@@ -18,35 +22,49 @@ export default {
     version: 'v2.0.2',
     versionDesc: 'version v2.0.2',
     methods: {
-        login() {
-            let that = this
+        login(school) {
+            let that = this.$vm
             return new Promise((resolve, reject) => {
-                let token = uni.getStorageSync('token')
-                if (token) {
-                    let isAdmin = uni.getStorageSync('isAdmin')
-                    resolve({
-                        token: token,
-                        isAdmin: isAdmin
-                    })
-                } else {
+                // 每次都请求，不使用缓存
+                // uni.removeStorageSync('token')
+                // uni.removeStorageSync('isAdmin')
+                // uni.removeStorageSync('school')
+                // let token = uni.getStorageSync('token')
+                // if (token) {
+                //     let isAdmin = uni.getStorageSync('isAdmin')
+                //     resolve({
+                //         token: token,
+                //         isAdmin: isAdmin
+                //     })
+                // } else {
                     qq.login({
                         success(res) {
                             if (res.code) {
                                 // 发起网络请求
                                 that.http.post('/login', {
                                     data: {
-                                        "code": res.code
+                                        code: res.code,
+                                        school: school
                                     }
                                 }).then((res) => {
-                                    uni.setStorageSync('token', res.data.data.token)
-                                    uni.setStorageSync('isAdmin', res.data.data.isAdmin)
-                                    resolve({
-                                        token: res.data.data.token,
-                                        isAdmin: res.data.data.isAdmin
-                                    })
-                                }).catch((err) => {
-                                    console.log(err)
-                                    reject(err)
+                                    if(res.data.code !== 200) {
+                                        reject(res.data.msg)
+                                    } else {
+                                        uni.setStorageSync('token', res.data.data.token)
+                                        uni.setStorageSync('isAdmin', res.data.data.isAdmin)
+                                        if(res.data.data.school) {
+                                            school = res.data.data.school
+                                            uni.setStorageSync('school', res.data.data.school)
+                                        } else {
+                                            uni.setStorageSync('school', school)
+                                        }
+                                        resolve({
+                                            token: res.data.data.token,
+                                            isAdmin: res.data.data.isAdmin,
+                                            school: school,
+                                            schoolName: res.data.data.schoolName
+                                        })
+                                    }
                                 })
 
                             } else {
@@ -55,11 +73,10 @@ export default {
                             }
                         },
                         fail(err) {
-                            console.log(err)
+                            console.log("App Login error", err)
                             reject(err)
                         }
                     })
-                }
             })
         }
     }
