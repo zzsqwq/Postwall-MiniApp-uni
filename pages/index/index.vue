@@ -60,9 +60,10 @@
             </template>
         </fui-input>
         <view class="fui-page__spacing" style="margin-top: 32rpx;">
-            <fui-button type="primary" radius="96rpx" @click="bindSubmit">提交</fui-button>
+            <fui-button type="primary" radius="96rpx" :margin="['0', '0', '20rpx', '0']"  @click="bindSubmit">提交</fui-button>
+            <fui-button type="success" radius="96rpx" @click="querySchool">查看绑定学校</fui-button>
         </view>
-        <fui-footer :navigate="navigate" text="Copyright © 2021-2022 胶州实验自助贴贴墙"></fui-footer>
+        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
         <!--顶部固定-->
         <view class="fui-notice__fixed" v-if="noticeShow">
             <fui-notice-bar :content="noticeStr" background="#fff8d5" color="#FF2B2B" scrollable>
@@ -145,33 +146,30 @@ export default {
         // Do some initialize when page load.
         console.log("Page loaded.")
         // Init token and isAdmin
-        let school = ""
+        let school = options.school || null;
         console.log("Options is:", options)
-        if (options.school) {
-            school = options.school
-        }
-        console.log("School is:", school)
+        console.log("Options School is:", school)
         await app.login(school).then(res => {
             this.isAdmin = res.isAdmin;
             this.token = res.token;
-            if(res.school !== "") {
-                this.school = res.school;
-                this.schoolName = res.schoolName;
-                console.log("School is:", this.school)
-                console.log("SchoolName is:", this.schoolName)
-            } else {
-                uni.showModal({
-                    title: '未绑定学校',
-                    content: "未绑定学校，请先从小尾巴进入绑定。",
-                    showCancel: false
-                });
-            }
+            this.school = res.school;
+            this.schoolName = res.schoolName;
+
+            // Log
+            console.log("Login success.", res);
         }).catch(err => {
             console.error("Login failed.", err);
             uni.showModal({
-                title: '登录失败',
-                content: err,
-                showCancel: false
+                title: '登陆失败',
+                content: err + "，点击确认查看指引。",
+                showCancel: true,
+                success: (res) => {
+                    if (res.confirm) {
+                        uni.navigateTo({
+                            url: '/pages/intro/intro'
+                        });
+                    }
+                }
             });
         });
         // Checkup update
@@ -219,6 +217,28 @@ export default {
         });
     },
     methods: {
+        querySchool() {
+            if(!this.school) {
+                uni.showModal({
+                    title: '未绑定学校',
+                    content: '请先绑定学校',
+                    showCancel: false,
+                    success: (res) => {
+                        if (res.confirm) {
+                            uni.navigateTo({
+                                url: '/pages/intro/intro'
+                            });
+                        }
+                    }
+                });
+                return;
+            }
+            uni.showModal({
+                title: '已绑定学校',
+                content: '当前学校为 ' + this.schoolName,
+                showCancel: false
+            });
+        },
         getNotice() {
             this.http.get("/config/notice").then(res => {
                 console.log("Get notice success.", res);
@@ -383,6 +403,14 @@ export default {
          * @param action 0 is formsubmit, 1 is blur submit
          */
         async submitPost(event) {
+            if(!this.school) {
+                uni.showToast({
+                    title: '请先绑定学校后再投稿',
+                    icon: 'none',
+                    duration: 1000
+                });
+                return;
+            }
             // Check if user is banned
             let isBanned = false
             await this.http.get("/users/isBanned").then(res => {

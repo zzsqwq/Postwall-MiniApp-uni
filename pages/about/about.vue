@@ -54,7 +54,7 @@
 				</view>
 			</fui-list-cell>
 		</view>
-		<fui-footer isFixed :navigate="navigate" text="Copyright © 2021-2022 胶州实验自助贴贴墙"></fui-footer>
+		<fui-footer isFixed :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
 	</view>
 </template>
 

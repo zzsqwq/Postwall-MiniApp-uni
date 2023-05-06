@@ -37,46 +37,46 @@ export default {
                 //         isAdmin: isAdmin
                 //     })
                 // } else {
-                    qq.login({
-                        success(res) {
-                            if (res.code) {
-                                // 发起网络请求
-                                that.http.post('/login', {
-                                    data: {
-                                        code: res.code,
-                                        school: school
-                                    }
-                                }).then((res) => {
-                                    if(res.data.code !== 200) {
-                                        reject(res.data.msg)
-                                    } else {
-                                        uni.setStorageSync('token', res.data.data.token)
-                                        uni.setStorageSync('isAdmin', res.data.data.isAdmin)
-                                        if(res.data.data.school) {
-                                            school = res.data.data.school
-                                            uni.setStorageSync('school', res.data.data.school)
-                                        } else {
-                                            uni.setStorageSync('school', school)
-                                        }
-                                        resolve({
-                                            token: res.data.data.token,
-                                            isAdmin: res.data.data.isAdmin,
-                                            school: school,
-                                            schoolName: res.data.data.schoolName
-                                        })
-                                    }
-                                })
-
-                            } else {
-                                console.log('登录失败！' + res.errMsg)
-                                reject(res.errMsg)
-                            }
-                        },
-                        fail(err) {
-                            console.log("App Login error", err)
-                            reject(err)
+                uni.removeStorageSync('token')
+                uni.removeStorageSync('isAdmin')
+                uni.removeStorageSync('school')
+                uni.removeStorageSync('schoolName')
+                qq.login({
+                    success(res) {
+                        if (res.code) {
+                            // 发起网络请求
+                            that.http.post('/login', {
+                                data: {
+                                    code: res.code,
+                                    school: school
+                                }
+                            }).then((res) => {
+                                // 如果不为 200 则请求失败，使用非业务异常
+                                if (res.data.code !== 200) {
+                                    reject(res.data.msg)
+                                } else {
+                                    uni.setStorageSync('token', res.data.data.token)
+                                    uni.setStorageSync('isAdmin', res.data.data.isAdmin)
+                                    uni.setStorageSync('school', res.data.data.school)
+                                    uni.setStorageSync('schoolName', res.data.data.schoolName)
+                                    resolve({
+                                        token: res.data.data.token,
+                                        isAdmin: res.data.data.isAdmin,
+                                        school: res.data.data.schoolName,
+                                        schoolName: res.data.data.schoolName
+                                    })
+                                }
+                            })
+                        } else {
+                            console.log('登录失败！' + res.errMsg)
+                            reject(res.errMsg)
                         }
-                    })
+                    },
+                    fail(err) {
+                        console.log("App Login error", err)
+                        reject(err)
+                    }
+                })
             })
         }
     }

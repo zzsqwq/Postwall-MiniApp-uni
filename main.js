@@ -20,8 +20,11 @@ app.$mount();
 http.create({
     //接口域名
     // host: 'http://zzsqwq.cn:12080/api/v1',
-    host: 'http://127.0.0.1:8080/api/v1',
+    // host: 'http://127.0.0.1:8080/api/v1',
     // host: 'http://192.168.31.249:8080/api/v1',
+    // host: 'http://192.168.1.244:8080/api/v1',
+    host: "https://api.zzsqwq.cn:8443/api/v1",
+    // host: "https://127.0.0.1:8443/api/v1",
     header: {
         'content-type': 'application/json',
     }

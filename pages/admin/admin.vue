@@ -78,7 +78,7 @@
                 <fui-empty :src="`/static/admin/img_order_3x.png`" title="暂无订单" marginTop="64"></fui-empty>
             </view>
         </view>
-        <fui-footer :navigate="navigate" text="Copyright © 2021-2022 胶州实验自助贴贴墙"></fui-footer>
+        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
     </view>
 </template>
 
@@ -164,59 +164,12 @@ export default {
         // return custom share data when user share.
     },
     async onLoad(options) {
-        // Init token and isAdmin
-        let option = uni.getLaunchOptionsSync();
-        let school = "";
-        if(option.query) {
-            if(option.query.school) {
-                school = option.query.school;
-            }
-        }
-        await app.login(school).then(res => {
-            this.isAdmin = res.isAdmin;
-            this.token = res.token;
-            if(res.school !== "") {
-                this.school = res.school;
-                this.schoolName = res.schoolName;
-                console.log("School is:", this.school)
-                console.log("SchoolName is:", this.schoolName)
-            } else {
-                uni.showModal({
-                    title: '未绑定学校',
-                    content: "未绑定学校，请先从小尾巴进入绑定。",
-                    showCancel: false
-                });
-            }
-        }).catch(err => {
-            console.error("Login failed.", err);
-            uni.showModal({
-                title: '登录失败',
-                content: err,
-                showCancel: false
-            });
-        });
-        console.log("Has got token and isAdmin.")
-        // this.getRejectArray();
-        // this.getForbiddenArray();
-        this.refresh(true)
+        await this.refresh(true)
     },
     onShow() {
         uni.hideTabBarRedDot({
             index: 1
         }); // If allPostList has changed, refresh
-        // Hide red dot on admin page
-
-        // this.isPostListChanged()
-        //     .then((res) => {
-        //         console.log('Post list changed res', res);
-        //
-        //         if (res) {
-        //             this.refresh(true);
-        //         }
-        //     })
-        //     .catch((error) => {
-        //         console.error('onShow function check refresh error,', error);
-        //     });
     },
     onPullDownRefresh(options) {
         this.refresh(true);
@@ -296,7 +249,7 @@ export default {
                 });
         },
 
-        // Async to update token and isAdmin info
+        // Async to update token and isAdmin info, unused
         async updateUserStatus() {
             uni.removeStorageSync('token');
             await app.login().then(res => {
@@ -312,7 +265,38 @@ export default {
             return isDelta;
         },
 
-        refresh(isReload) {
+        async refresh(isReload) {
+            // Init token and isAdmin
+            let option = uni.getLaunchOptionsSync();
+            console.log("Launch options:", option)
+            let school = option.query.school || null;
+            await app.login(school).then(res => {
+                this.isAdmin = res.isAdmin;
+                this.token = res.token;
+                this.school = res.school;
+                this.schoolName = res.schoolName;
+
+                // Log
+                console.log("Login success.", res);
+            }).catch(err => {
+                console.error("Login failed.", err);
+                uni.showModal({
+                    title: '登录失败',
+                    content: err + "，点击确认查看指引。",
+                    showCancel: true,
+                    success: (res) => {
+                        if (res.confirm) {
+                            uni.navigateTo({
+                                url: '/pages/intro/intro'
+                            });
+                        }
+                    }
+                });
+            });
+            if (!this.school) {
+                return;
+            }
+
             if (isReload) {
                 this.nowPagesNum = 0;
             }
@@ -368,8 +352,8 @@ export default {
             const imageIndex = id % 10;
             console.log(e, id, postIndex, imageIndex)
             uni.previewImage({
-                current: this.postList[postIndex].image_list[imageIndex],
-                urls: this.postList[postIndex].image_list
+                current: this.postList[postIndex].imageList[imageIndex],
+                urls: this.postList[postIndex].imageList
             });
         },
 
@@ -450,12 +434,12 @@ export default {
                     next_index = now_index + this.selectCounter[i] - 1;
 
                     if (this.selectCounter[i] !== 1) {
-                        post_detail += 'P' + now_index + '-' + next_index + ':[' + this.postList[i].post_type + ']' +
-                            this.postList[i].post_title + '\n';
+                        post_detail += 'P' + now_index + '-' + next_index + ':[' + this.postList[i].postType + ']' +
+                            this.postList[i].postTitle + '\n';
                         now_index = next_index + 1;
                     } else {
-                        post_detail += 'P' + now_index + ':[' + this.postList[i].post_type + ']' + this.postList[i]
-                            .post_title + '\n';
+                        post_detail += 'P' + now_index + ':[' + this.postList[i].postType + ']' + this.postList[i]
+                            .postTitle + '\n';
                         now_index = next_index + 1;
                     }
                 }
@@ -463,10 +447,11 @@ export default {
 
             uni.openQzonePublish({
                 footnote: '胶州实高自助贴贴墙',
-                path: 'pages/index/index',
+                path: 'pages/index/index?' + "school=" + this.school,
                 text: post_detail,
                 media: medias
             });
+
             this.setData({
                 selectCounter: new Array(10).fill(0),
                 isSelected: new Array(10).fill(false).map(() => new Array(10).fill(false))
@@ -611,44 +596,25 @@ export default {
         // Update database when delete a post
         deleteOnePost(event) {
             const postIndex = event.param;
-            const db = qq.cloud.database();
-            const isAdmin = this.isAdmin;
-            const userOpenid = this.userOpenid;
             let post = this.postList[postIndex]; // Admin delete is different
 
-            if (isAdmin === true && post.post_user_openid !== userOpenid) {
-                db.collection('postwall')
-                    .doc(post._id)
-                    .update({
-                        data: {
-                            post_done: true,
-                            post_reject: false
-                        }
-                    })
-                    .then((res) => {
-                        uni.showToast({
-                            title: '删除成功',
-                            icon: 'success',
-                            duration: 500
-                        });
+            this.http.request({
+                url: "/posts/" + post.postId,
+                method: "DELETE",
+            }).then((res) => {
+                if (res.data.code === 200) {
+                    uni.showToast({
+                        title: '删除成功',
+                        icon: 'success',
+                        duration: 500
                     });
-            } else {
-                db.collection('postwall')
-                    .doc(post._id)
-                    .update({
-                        data: {
-                            post_done: true,
-                            post_user_done: true
-                        }
-                    })
-                    .then((res) => {
-                        uni.showToast({
-                            title: '删除成功',
-                            icon: 'success',
-                            duration: 500
-                        });
-                    });
-            }
+                } else {
+                    // 抛出错误
+                    return Promise.reject(res.data);
+                }
+            }).catch((err) => {
+                console.log(err);
+            });
 
             this.deleteAndUpdatePage(postIndex);
         },
@@ -656,63 +622,31 @@ export default {
             const reason = event.text;
             let postIndex = this.rejectIndex;
             let post = this.postList[postIndex]
-            const db = qq.cloud.database();
-            if (this.isAdmin === true) {
-                db.collection('postwall')
-                    .doc(post._id)
-                    .update({
-                        data: {
-                            post_done: true,
-                            post_reject: reason
-                        }
-                    })
-                    .then(result => {
-                        let hasReject = false
-                        let updateForbidden = async () => {
-                            for (let i = 0; i < this.forbiddenArray.length; i++) {
-                                if (this.forbiddenArray[i].open_id === post.post_user_openid) {
-                                    this.forbiddenArray[i].count += 1
-                                    hasReject = true
-                                    return db.collection("forbiddenList").doc(this.forbiddenArray[i]
-                                        ._id).update({
-                                        data: {
-                                            count: this.forbiddenArray[i].count,
-                                            posts: this.forbiddenArray[i].posts.concat(post
-                                                ._id),
-                                            reasons: this.forbiddenArray[i].reasons.concat(reason)
-                                        }
-                                    })
-                                }
-                            }
-                        }
-                        return updateForbidden().then(result => {
-                            if (hasReject === false) {
-                                return db.collection("forbiddenList").add({
-                                    data: {
-                                        open_id: post.post_user_openid,
-                                        count: 1,
-                                        posts: [post._id],
-                                        reasons: [reason]
-                                    }
-                                })
-                            }
-                        });
-                    })
-                    .then((res) => {
-                        this.getForbiddenArray();
+
+            this.http.post("/posts/" + post.postId + "/reject", {
+                data: {
+                    reason: reason
+                }
+            })
+                .then(res => {
+                    if (res.data.code === 200) {
                         uni.showToast({
-                            title: '拒发成功',
+                            title: '拒绝成功',
                             icon: 'success',
                             duration: 500
                         });
+                    } else {
+                        // 抛出错误
+                        return Promise.reject(res.data.msg);
+                    }
+                }).catch((err) => {
+                    console.log("Reject post error: " + err);
+                    uni.showModal({
+                        title: '拒发失败',
+                        content: err,
+                        showCancel: false
                     });
-            } else {
-                uni.showModal({
-                    title: '权限错误',
-                    content: '你没有权限进行此操作',
-                    showCancel: false
-                });
-            }
+            });
 
             this.deleteAndUpdatePage(postIndex);
             this.actionSheetShow = false;
@@ -729,56 +663,29 @@ export default {
         },
         recoverOnePost(event) {
             const postIndex = event.param;
-            const db = qq.cloud.database();
-            const isAdmin = this.isAdmin;
-            const userOpenid = this.userOpenid;
             let post = this.postList[postIndex];
 
-            if (isAdmin === true) {
-                db.collection('postwall')
-                    .doc(post._id)
-                    .update({
-                        data: {
-                            post_done: false,
-                            post_reject: false
-                        }
-                    }).then((res) => {
-                    if (post.post_reject) {
-                        for (let i = 0; i < this.forbiddenArray.length; i++) {
-                            if (this.forbiddenArray[i].open_id === post.post_user_openid) {
-                                this.forbiddenArray[i].count -= 1
-                                // 查找等于post._id的元素的下标
-                                let index = this.forbiddenArray[i].posts.indexOf(post._id)
-                                this.forbiddenArray[i].posts.splice(index, 1)
-                                this.forbiddenArray[i].reasons.splice(index, 1)
-                                return db.collection("forbiddenList").doc(this.forbiddenArray[i]._id)
-                                    .update({
-                                        data: {
-                                            count: this.forbiddenArray[i].count,
-                                            // 去掉特定下标元素
-                                            posts: this.forbiddenArray[i].posts,
-                                            reasons: this.forbiddenArray[i].reasons
-                                        }
-                                    })
-                            }
-                        }
+            this.http.post("/posts/" + post.postId + "/recover")
+                .then(res => {
+                    if (res.data.code === 200) {
+                        uni.showToast({
+                            title: '恢复成功',
+                            icon: 'success',
+                            duration: 500
+                        });
+                    } else {
+                        // 抛出错误
+                        return Promise.reject(res.data);
                     }
-                }).then(res => {
-                    this.getForbiddenArray()
-                    uni.showToast({
-                        title: '恢复成功',
-                        icon: 'success',
-                        duration: 500
+                })
+                .then(err => {
+                    console.log(err);
+                    uni.showModal({
+                        title: '恢复失败',
+                        content: err,
+                        showCancel: false
                     });
-                });
-            } else {
-                uni.showModal({
-                    title: '权限错误',
-                    content: '你没有权限进行此操作',
-                    showCancel: false
-                });
-            }
-
+                })
             this.deleteAndUpdatePage(postIndex);
         },
 
@@ -800,7 +707,7 @@ export default {
         },
 
         getRejectArray() {
-            this.http.get('/config/postTypes').then(res => {
+            this.http.get('/config/rejectReasons').then(res => {
                 this.rejectReasons = res.data.data;
             }).catch(err => {
                 console.error(err);
@@ -808,63 +715,34 @@ export default {
         },
         publishAll() {
             for (let i = 0; i < this.postList.length; i++) {
-                let data_ = this.postList[i];
+                let post = this.postList[i];
 
-                for (let j = 0; j < data_.image_list.length; j++) {
+                for (let j = 0; j < post.imageList.length; j++) {
                     if (!this.isSelected[i][j]) {
                         this.isSelected[i][j] = true;
                         this.selectCounter[i]++;
                     }
                 }
             }
-
             this.toQzone();
         },
 
         deleteAll() {
             let postList = this.postList;
-            const isAdmin = this.isAdmin;
-            const userOpenid = this.userOpenid;
-            const db = qq.cloud.database();
             let deleteTasks = [];
 
             for (let i = 0; i < postList.length; i++) {
                 let post = postList[i];
 
-                if (isAdmin && post.post_user_openid !== userOpenid) {
-                    let task = db
-                        .collection('postwall')
-                        .doc(post._id)
-                        .update({
-                            data: {
-                                post_done: true
-                            }
-                        })
-                        .then((res) => {
-                            postList.splice(i, 1);
-                        })
-                        .catch((error) => {
-                            console.error(error);
-                        });
-                    deleteTasks.push(task);
-                } else {
-                    let task = db
-                        .collection('postwall')
-                        .doc(post._id)
-                        .update({
-                            data: {
-                                post_done: true,
-                                post_user_done: true
-                            }
-                        })
-                        .then((res) => {
-                            postList.splice(i, 1);
-                        })
-                        .catch((error) => {
-                            console.error(error);
-                        });
-                    deleteTasks.push(task);
-                }
+                let task = this.http.request({
+                    url: "/posts/" + post.postId,
+                    method: "DELETE",
+                }).then(res => {
+                    if (res.data.code === 200) {
+                        postList.splice(i, 1);
+                    }
+                })
+                deleteTasks.push(task);
             }
 
             Promise.all(deleteTasks)
@@ -886,7 +764,8 @@ export default {
                 });
             this.setData({
                 postList: postList
-            }); // TODO: not refresh
+            });
+            // TODO: not refresh
 
             this.refresh(true);
         },
