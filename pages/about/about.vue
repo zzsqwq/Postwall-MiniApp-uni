@@ -113,7 +113,7 @@
 		methods: {
 			navigateToDeclaration() {
 				qq.navigateTo({
-					url: '/pages/declaration/declaration'
+					url: '/pages/intro/intro'
 				})
 			},
 			getGithubLink(e) {
