@@ -180,6 +180,12 @@ export default {
         uni.hideTabBarRedDot({
             index: 1
         }); // If allPostList has changed, refresh
+        let school = uni.getStorageSync('school');
+        if(school !== this.school && this.school !== undefined) {
+            this.school = school;
+            this.refresh(true);
+        }
+
     },
     onPullDownRefresh(options) {
         this.refresh(true);
@@ -581,7 +587,7 @@ export default {
                     });
                 } else {
                     // 抛出错误
-                    return Promise.reject(res.data);
+                    throw res.data.msg;
                 }
             }).catch((err) => {
                 console.log(err);
@@ -612,7 +618,7 @@ export default {
                     });
                 } else {
                     // 抛出错误
-                    return Promise.reject(res.data);
+                    throw res.data.msg;
                 }
             }).catch((err) => {
                 console.log(err);
@@ -645,7 +651,7 @@ export default {
                         });
                     } else {
                         // 抛出错误
-                        return Promise.reject(res.data.msg);
+                        throw res.data.msg;
                     }
                 }).catch((err) => {
                     console.log("Reject post error: " + err);
@@ -683,7 +689,7 @@ export default {
                         });
                     } else {
                         // 抛出错误
-                        return Promise.reject(res.data);
+                        throw res.data.msg;
                     }
                 })
                 .catch(err => {

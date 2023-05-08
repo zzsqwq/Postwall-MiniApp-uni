@@ -27,7 +27,7 @@
                           radius="12" markColor="#465CFF" size="26"></fui-data-tag>
         </view>
         <view class="fui-section__title">投稿标题*</view>
-<!--        <fui-input required clearable placeholder="不多于六个字" radius="100rpx" v-model="postTitle" @input="finishTitle">-->
+        <!--        <fui-input required clearable placeholder="不多于六个字" radius="100rpx" v-model="postTitle" @input="finishTitle">-->
         <fui-input required clearable placeholder="不多于六个字" radius="100rpx" maxlength="6" v-model="postTitle">
         </fui-input>
         <view class="fui-section__title">内容文本*</view>
@@ -61,7 +61,8 @@
             </template>
         </fui-input>
         <view class="fui-page__spacing" style="margin-top: 32rpx;">
-            <fui-button type="primary" radius="96rpx" :margin="['0', '0', '20rpx', '0']"  @click="bindSubmit">提交</fui-button>
+            <fui-button type="primary" radius="96rpx" :margin="['0', '0', '20rpx', '0']" @click="bindSubmit">提交
+            </fui-button>
             <fui-button type="success" radius="96rpx" @click="querySchool">查看或绑定学校</fui-button>
         </view>
         <fui-footer :navigate="navigate" text="Copyright © 2021-2023 自助贴贴墙"></fui-footer>
@@ -78,7 +79,8 @@
                 </template>
             </fui-notice-bar>
         </view>
-        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择平台" maskClosable @confirm="schoolSelectorConfirm" @cancel="schoolSelectorCancel" ></fui-select>
+        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择平台"
+                    @confirm="schoolSelectorConfirm" @cancel="schoolSelectorCancel"></fui-select>
     </view>
 </template>
 
@@ -193,11 +195,12 @@ export default {
 
         // Delete abundant images
         this.deleteAbundantFiles()
+        // Get schools
+        this.getSchools()
     },
     onReady() {
         // Do something when page ready.
         console.log("Page ready.")
-        this.getSchools()
     },
     onShow() {
         // Do something when page show.
@@ -225,7 +228,64 @@ export default {
     },
     methods: {
         schoolSelectorConfirm(event) {
-            console.log("Event is ", event)
+            console.log("this is admin", this.isAdmin)
+            if (this.isAdmin) {
+                uni.showModal({
+                    title: '管理员模式',
+                    content: '管理员模式下无法切换学校',
+                    showCancel: false,
+                });
+                this.schoolSelectorShow = false;
+                return;
+            }
+            if (event.index === -1) {
+                uni.showToast({
+                    title: '请至少选择一个选择学校',
+                    icon: 'none',
+                    duration: 1000
+                });
+                return;
+            } else {
+                let school = this.schoolItems[event.index].school;
+                if (school === this.school) {
+                    uni.showToast({
+                        title: '已经在该学校了',
+                        icon: 'none',
+                        duration: 1000
+                    });
+                    this.schoolSelectorShow = false;
+                    return;
+                }
+                console.log("School is", school)
+                this.http.post("/users/bindSchool", {
+                    data: {
+                        school: school
+                    }
+                }).then((res) => {
+                        console.log("Bind school success.", res);
+                        if (res.statusCode === 200) {
+                            uni.showToast({
+                                title: '切换成功，当前学校为' + this.schoolItems[event.index].text,
+                                icon: 'success',
+                                duration: 1000
+                            });
+                            this.school = school;
+                            this.schoolName = this.schoolItems[event.index].text;
+                            uni.setStorageSync("school", school);
+                            // this.refresh();
+                        } else {
+                            throw res.data.msg;
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Bind school failed.", err);
+                        uni.showToast({
+                            title: '切换失败',
+                            icon: 'none',
+                            duration: 1000
+                        });
+                    })
+            }
             this.schoolSelectorShow = false;
         },
         schoolSelectorCancel(event) {
@@ -233,13 +293,14 @@ export default {
             this.schoolSelectorShow = false;
         },
         getSchools() {
+            let items = []
             this.http.get("/config/schools")
                 .then((res) => {
                     console.log("Get schools success.", res);
                     if (res.statusCode === 200) {
                         let data = res.data.data;
                         let tasks = []
-                        for(let i= 0; i < data.length; i++) {
+                        for (let i = 0; i < data.length; i++) {
                             let dataItem = data[i];
                             let task = this.http.post("/file/download/url", {
                                 data: {
@@ -249,23 +310,25 @@ export default {
                                 if (res.statusCode === 200) {
                                     return uni.downloadFile({
                                         url: res.data.data,
-                                    }).then( (res) => {
-                                        this.schoolItems.push({
+                                    }).then((res) => {
+                                        items.push({
+                                            school: dataItem.school,
                                             text: dataItem.schoolName,
-                                            src: res.tempFilePath
+                                            src: res.tempFilePath,
+                                            checked: dataItem.schoolName === this.schoolName
                                         })
                                     })
                                 } else {
-                                    Promise.reject("获取学校失败")
+                                    throw "获取学校失败";
                                 }
                             })
                             tasks.push(task)
                         }
                         Promise.all(tasks).then(() => {
-                            console.log("School items:", this.schoolItems)
+                            this.schoolItems = items;
                         })
                     } else {
-                        Promise.reject("获取学校失败")
+                        throw "获取学校失败";
                     }
                 }).catch(err => {
                 console.error("Get schools failed.", err);
@@ -285,7 +348,8 @@ export default {
             })
         },
         querySchool() {
-            if(!this.school) {
+            let items = this.schoolItems
+            if (!this.school) {
                 uni.showToast({
                     title: '当前未绑定学校',
                     icon: 'none',
@@ -467,7 +531,7 @@ export default {
          * @param action 0 is formsubmit, 1 is blur submit
          */
         async submitPost(event) {
-            if(!this.school) {
+            if (!this.school) {
                 uni.showToast({
                     title: '请先绑定学校后再投稿',
                     icon: 'none',
@@ -476,12 +540,12 @@ export default {
                 return;
             }
             // Check if user is banned
-            if(this.isBanned === undefined) {
+            if (this.isBanned === undefined) {
                 await this.http.get("/users/isBanned").then(res => {
                     this.isBanned = res.data.data;
                 })
             }
-            if(this.isBanned) {
+            if (this.isBanned) {
                 uni.showModal({
                     title: '您已被禁止投稿',
                     content: '因您多次发表违规订单，已被禁止投稿。如有疑问请联系贴贴墙',
