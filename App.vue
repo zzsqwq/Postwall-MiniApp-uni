@@ -62,7 +62,7 @@ export default {
                                     resolve({
                                         token: res.data.data.token,
                                         isAdmin: res.data.data.isAdmin,
-                                        school: res.data.data.schoolName,
+                                        school: res.data.data.school,
                                         schoolName: res.data.data.schoolName
                                     })
                                 }

@@ -27,7 +27,8 @@
                           radius="12" markColor="#465CFF" size="26"></fui-data-tag>
         </view>
         <view class="fui-section__title">投稿标题*</view>
-        <fui-input required clearable placeholder="不多于六个字" maxlength="6" radius="100rpx" v-model="postTitle">
+<!--        <fui-input required clearable placeholder="不多于六个字" radius="100rpx" v-model="postTitle" @input="finishTitle">-->
+        <fui-input required clearable placeholder="不多于六个字" radius="100rpx" maxlength="6" v-model="postTitle">
         </fui-input>
         <view class="fui-section__title">内容文本*</view>
         <fui-textarea required isCounter autoHeight maxlength="-1" placeholder="请勿包含暴力，辱骂等限流内容，字数不限。"
@@ -61,9 +62,9 @@
         </fui-input>
         <view class="fui-page__spacing" style="margin-top: 32rpx;">
             <fui-button type="primary" radius="96rpx" :margin="['0', '0', '20rpx', '0']"  @click="bindSubmit">提交</fui-button>
-            <fui-button type="success" radius="96rpx" @click="querySchool">查看绑定学校</fui-button>
+            <fui-button type="success" radius="96rpx" @click="querySchool">查看或绑定学校</fui-button>
         </view>
-        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
+        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 自助贴贴墙"></fui-footer>
         <!--顶部固定-->
         <view class="fui-notice__fixed" v-if="noticeShow">
             <fui-notice-bar :content="noticeStr" background="#fff8d5" color="#FF2B2B" scrollable>
@@ -77,6 +78,7 @@
                 </template>
             </fui-notice-bar>
         </view>
+        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择平台" maskClosable @confirm="schoolSelectorConfirm" @cancel="schoolSelectorCancel" ></fui-select>
     </view>
 </template>
 
@@ -136,7 +138,9 @@ export default {
                 image: 'cloud://postwall-4gy7eykl559a475a.706f-postwall-4gy7eykl559a475a-1300413137/banner/BDFFBACD8C9D6651B62C7AB705862A5C.png'
             },],
             noticeShow: false,
-            noticeStr: ""
+            noticeStr: "",
+            schoolSelectorShow: false,
+            schoolItems: []
         };
     },
     onShareAppMessage() {
@@ -153,8 +157,8 @@ export default {
             this.isAdmin = res.isAdmin;
             this.token = res.token;
             this.school = res.school;
+            console.log("school is", this.school)
             this.schoolName = res.schoolName;
-
             // Log
             console.log("Login success.", res);
         }).catch(err => {
@@ -184,6 +188,8 @@ export default {
         this.getNotice();
         // Get banner
         this.getBanner();
+        // Get isBanned
+        this.getIsBanned();
 
         // Delete abundant images
         this.deleteAbundantFiles()
@@ -191,6 +197,7 @@ export default {
     onReady() {
         // Do something when page ready.
         console.log("Page ready.")
+        this.getSchools()
     },
     onShow() {
         // Do something when page show.
@@ -217,27 +224,82 @@ export default {
         });
     },
     methods: {
+        schoolSelectorConfirm(event) {
+            console.log("Event is ", event)
+            this.schoolSelectorShow = false;
+        },
+        schoolSelectorCancel(event) {
+            console.log("Event is ", event)
+            this.schoolSelectorShow = false;
+        },
+        getSchools() {
+            this.http.get("/config/schools")
+                .then((res) => {
+                    console.log("Get schools success.", res);
+                    if (res.statusCode === 200) {
+                        let data = res.data.data;
+                        let tasks = []
+                        for(let i= 0; i < data.length; i++) {
+                            let dataItem = data[i];
+                            let task = this.http.post("/file/download/url", {
+                                data: {
+                                    key: dataItem.logo
+                                }
+                            }).then((res) => {
+                                if (res.statusCode === 200) {
+                                    return uni.downloadFile({
+                                        url: res.data.data,
+                                    }).then( (res) => {
+                                        this.schoolItems.push({
+                                            text: dataItem.schoolName,
+                                            src: res.tempFilePath
+                                        })
+                                    })
+                                } else {
+                                    Promise.reject("获取学校失败")
+                                }
+                            })
+                            tasks.push(task)
+                        }
+                        Promise.all(tasks).then(() => {
+                            console.log("School items:", this.schoolItems)
+                        })
+                    } else {
+                        Promise.reject("获取学校失败")
+                    }
+                }).catch(err => {
+                console.error("Get schools failed.", err);
+                uni.showToast({
+                    title: '获取学校失败',
+                    icon: 'none',
+                    duration: 1000
+                });
+            })
+        },
+        getIsBanned() {
+            this.http.get("/users/isBanned").then(res => {
+                console.log("Get isBanned success.", res);
+                if (res.statusCode === 200) {
+                    this.isBanned = res.data.data;
+                }
+            })
+        },
         querySchool() {
             if(!this.school) {
-                uni.showModal({
-                    title: '未绑定学校',
-                    content: '请先绑定学校',
-                    showCancel: false,
-                    success: (res) => {
-                        if (res.confirm) {
-                            uni.navigateTo({
-                                url: '/pages/intro/intro'
-                            });
-                        }
-                    }
+                uni.showToast({
+                    title: '当前未绑定学校',
+                    icon: 'none',
+                    duration: 1000
                 });
-                return;
+            } else {
+                uni.showToast({
+                    title: '当前学校为：' + this.schoolName,
+                    icon: 'none',
+                    duration: 1000
+                });
             }
-            uni.showModal({
-                title: '已绑定学校',
-                content: '当前学校为 ' + this.schoolName,
-                showCancel: false
-            });
+            this.schoolSelectorShow = true
+
         },
         getNotice() {
             this.http.get("/config/notice").then(res => {
@@ -361,8 +423,10 @@ export default {
 
             // Get Notice
             this.getNotice();
-            // Gt banner
+            // Get banner
             this.getBanner();
+            // Get isBanned
+            this.getIsBanned();
         },
 
         async uploadFilesToCOS() {
@@ -412,18 +476,17 @@ export default {
                 return;
             }
             // Check if user is banned
-            let isBanned = false
-            await this.http.get("/users/isBanned").then(res => {
-                isBanned = res.data.data;
-                if (res.data.data) {
-                    uni.showModal({
-                        title: '您已被禁止投稿',
-                        content: '因您多次发表违规订单，已被禁止投稿。如有疑问请联系贴贴墙',
-                        showCancel: false,
-                    })
-                }
-            })
-            if (isBanned) {
+            if(this.isBanned === undefined) {
+                await this.http.get("/users/isBanned").then(res => {
+                    this.isBanned = res.data.data;
+                })
+            }
+            if(this.isBanned) {
+                uni.showModal({
+                    title: '您已被禁止投稿',
+                    content: '因您多次发表违规订单，已被禁止投稿。如有疑问请联系贴贴墙',
+                    showCancel: false,
+                })
                 return;
             }
 
@@ -479,7 +542,7 @@ export default {
 
             uni.showModal({
                 title: '投稿确认提示',
-                content: '请确认投稿内容中不包含暴力、谩骂、引战、色情、政治等信息。\n\n如内容涉及他/她人个人信息、肖像等请征得对方同意。\n\n可在查看订单页面删除已发订单。',
+                content: '请确认投稿内容中不包含暴力、谩骂、引战、色情、政治等信息。\n\n如内容涉及他/她人个人信息、肖像等请征得对方同意。\n\n可在查看订单页面查看或右滑取消、删除已发订单。',
                 confirmText: '是',
                 confirmColor: '#00CAFC',
                 cancelText: '否',

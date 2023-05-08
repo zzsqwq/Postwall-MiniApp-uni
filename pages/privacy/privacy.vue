@@ -2,7 +2,7 @@
 	<view class="fui-wrap">
 		<view class="fui-page__hd">
 			<view class="fui-page__title">隐私说明</view>
-			<view class="fui-page__desc">本说明是实高自助贴贴墙小程序开发者（以下简称“开发者”）为处理您的个人信息而制定。</view>
+			<view class="fui-page__desc">本说明是自助贴贴墙小程序开发者（以下简称“开发者”）为处理您的个人信息而制定。</view>
 		</view>
 		<view class="fui-page__bd fui-page__spacing" >
 		<view class="fui-section__title">开发者收集的信息</view>

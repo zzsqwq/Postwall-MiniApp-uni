@@ -4,9 +4,9 @@
         <fui-actionsheet :show="actionSheetShow" :itemList="rejectReasons" @click="actionSheetClick"
                          @cancel="actionSheetCancel"></fui-actionsheet>
         <fui-swipeaction-group>
-            <fui-collapse accordion @change="changeTest">
+            <fui-collapse accordion>
                 <fui-swipe-action v-for="(item, index) in postList" :key="item.postId"
-                                  :buttons="isAdmin? (isRecently? adminRecentlyButtons:adminButtons) : userButtons"
+                                  :buttons="isAdmin? (isRecently? adminRecentlyButtons:adminButtons) : (isRecently? userRecentlyButtons:userButtons)"
                                   @click="handleSwiperAction" :param="index">
                     <fui-collapse-item :index="index">
                         <view class="fui-item__box">
@@ -78,7 +78,7 @@
                 <fui-empty :src="`/static/admin/img_order_3x.png`" title="暂无订单" marginTop="64"></fui-empty>
             </view>
         </view>
-        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
+        <fui-footer :navigate="navigate" text="Copyright © 2021-2023 自助贴贴墙"></fui-footer>
     </view>
 </template>
 
@@ -149,13 +149,23 @@ export default {
             }],
             userButtons: [{
                 //按钮文本
-                text: '清除',
+                text: '取消发送',
                 //按钮字体大小，可选
                 size: 32,
                 //按钮字体颜色，可选
                 color: '#fff',
                 //按钮背景色
                 background: '#465CFF'
+            }],
+            userRecentlyButtons: [{
+                //按钮文本
+                text: '删除',
+                //按钮字体大小，可选
+                size: 32,
+                //按钮字体颜色，可选
+                color: '#fff',
+                //按钮背景色
+                background: '#FF2B2B'
             }],
             actionSheetShow: false
         };
@@ -175,9 +185,6 @@ export default {
         this.refresh(true);
     },
     methods: {
-        changeTest(event) {
-            console.log(event)
-        },
         async loadDatabase() {
             uni.showLoading({
                 title: '正在加载订单',
@@ -338,7 +345,6 @@ export default {
         },
 
         getUserInfo: function (e) {
-            console.log(e);
             app.globalData.userInfo = e.detail.userInfo;
             this.setData({
                 userInfo: e.detail.userInfo,
@@ -350,52 +356,15 @@ export default {
             const id = parseInt(e.target.id);
             const postIndex = parseInt(id / 10);
             const imageIndex = id % 10;
-            console.log(e, id, postIndex, imageIndex)
             uni.previewImage({
                 current: this.postList[postIndex].imageList[imageIndex],
                 urls: this.postList[postIndex].imageList
             });
         },
 
-        kindToggle(e) {
-            const postId = e.currentTarget.id;
-            const id = e.target.dataset.id;
-            const postList = this.postList;
-            const post = postList[id];
-
-            if (post.post_reject && !post.notify_count && !this.isRecently) {
-                post.notify_count = true;
-                let rejectContent = '您的订单由于涉及 ' + post.post_reject + ' 等原因被拒绝发送，请修改后重新提交。\n\n您是否需要删除该订单？您也可以通过左滑删除订单。';
-                uni.showModal({
-                    title: '订单已被拒发',
-                    content: rejectContent,
-                    cancelText: '否',
-                    confirmText: '是',
-                    success: (res) => {
-                        if (res.confirm) {
-                            this.deleteOnePost(id);
-                        }
-                    }
-                });
-            } else {
-                for (let i = 0, len = postList.length; i < len; ++i) {
-                    if (postList[i]._id === postId) {
-                        postList[i].open = !postList[i].open;
-                    } else {
-                        postList[i].open = false;
-                    }
-                }
-            }
-
-            this.setData({
-                postList: postList
-            });
-        },
-
         selectImg(event) {
             const postIndex = event.params[0]
             const imageIndex = event.params[1]
-            console.log(postIndex, imageIndex)
             let isSelected = this.isSelected;
             let selectCounter = this.selectCounter;
             isSelected[postIndex][imageIndex] = !isSelected[postIndex][imageIndex];
@@ -414,9 +383,9 @@ export default {
         toQzone() {
             let medias = [];
             const isSelected = this.isSelected;
-            let now_index = 1;
-            let next_index = 0;
-            let post_detail = '';
+            let nowIndex = 1;
+            let nextIndex = 0;
+            let postDetail = '';
 
             for (let i = 0; i < isSelected.length; i++) {
                 for (let j = 0; j < isSelected[i].length; j++) {
@@ -431,24 +400,24 @@ export default {
 
             for (let i = 0; i < this.selectCounter.length; i++) {
                 if (this.selectCounter[i] !== 0) {
-                    next_index = now_index + this.selectCounter[i] - 1;
+                    nextIndex = nowIndex + this.selectCounter[i] - 1;
 
                     if (this.selectCounter[i] !== 1) {
-                        post_detail += 'P' + now_index + '-' + next_index + ':[' + this.postList[i].postType + ']' +
+                        postDetail += 'P' + nowIndex + '-' + nextIndex + ':[' + this.postList[i].postType + ']' +
                             this.postList[i].postTitle + '\n';
-                        now_index = next_index + 1;
+                        nowIndex = nextIndex + 1;
                     } else {
-                        post_detail += 'P' + now_index + ':[' + this.postList[i].postType + ']' + this.postList[i]
+                        postDetail += 'P' + nowIndex + ':[' + this.postList[i].postType + ']' + this.postList[i]
                             .postTitle + '\n';
-                        now_index = next_index + 1;
+                        nowIndex = nextIndex + 1;
                     }
                 }
             }
 
             uni.openQzonePublish({
-                footnote: '胶州实高自助贴贴墙',
+                footnote: '自助贴贴墙',
                 path: 'pages/index/index?' + "school=" + this.school,
-                text: post_detail,
+                text: postDetail,
                 media: medias
             });
 
@@ -578,7 +547,6 @@ export default {
             this.recoverOnePost(id);
         },
         handleSwiperAction(event) {
-            console.log(event)
             if (this.isAdmin) {
                 if (this.isRecently) {
                     this.recoverOnePost(event)
@@ -590,19 +558,22 @@ export default {
                     }
                 }
             } else {
-                this.deleteOnePost(event);
+                if(this.isRecently) {
+                    this.userDeleteOnePost(event);
+                } else {
+                    this.deleteOnePost(event);
+                }
             }
         },
-        // Update database when delete a post
-        deleteOnePost(event) {
+        userDeleteOnePost(event) {
             const postIndex = event.param;
             let post = this.postList[postIndex]; // Admin delete is different
 
             this.http.request({
-                url: "/posts/" + post.postId,
+                url: "/posts/" + post.postId + "/userDelete",
                 method: "DELETE",
             }).then((res) => {
-                if (res.data.code === 200) {
+                if(res.data.code === 200) {
                     uni.showToast({
                         title: '删除成功',
                         icon: 'success',
@@ -614,6 +585,43 @@ export default {
                 }
             }).catch((err) => {
                 console.log(err);
+                uni.showToast({
+                    title: '删除失败',
+                    icon: 'none',
+                    duration: 500
+                });
+            });
+
+            this.deleteAndUpdatePage(postIndex);
+        },
+        // Update database when delete a post
+        deleteOnePost(event) {
+            const postIndex = event.param;
+            let post = this.postList[postIndex];
+
+            this.http.request({
+                url: "/posts/" + post.postId,
+                method: "DELETE",
+            }).then((res) => {
+                if (res.data.code === 200) {
+                    let title = this.isAdmin? '删除成功': '取消发送成功';
+                    uni.showToast({
+                        title: title,
+                        icon: 'success',
+                        duration: 500
+                    });
+                } else {
+                    // 抛出错误
+                    return Promise.reject(res.data);
+                }
+            }).catch((err) => {
+                console.log(err);
+                let title = this.isAdmin? '删除失败': '取消发送失败';
+                uni.showToast({
+                    title: title,
+                    icon: 'none',
+                    duration: 500
+                });
             });
 
             this.deleteAndUpdatePage(postIndex);
@@ -678,7 +686,7 @@ export default {
                         return Promise.reject(res.data);
                     }
                 })
-                .then(err => {
+                .catch(err => {
                     console.log(err);
                     uni.showModal({
                         title: '恢复失败',
@@ -699,9 +707,7 @@ export default {
                 postList: postList,
                 selectCounter: this.selectCounter,
                 photoArray: this.photoArray,
-                isSelected: this.isSelected
-            });
-            this.setData({
+                isSelected: this.isSelected,
                 allPostNum: this.allPostNum - 1
             });
         },
@@ -780,8 +786,6 @@ export default {
 
         paginationChange(event) {
             let type = event.type
-            console.log("Event: ", event)
-            console.log("Type: ", type)
             switch (type) {
                 case 'prev':
                     this.prePage();

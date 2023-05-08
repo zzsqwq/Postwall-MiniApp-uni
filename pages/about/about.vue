@@ -1,7 +1,7 @@
 <template>
 	<view class="fui-wrap">
 		<image class="logo" :src="'https://q1.qlogo.cn/g?b=qq&nk=2825467691&s=640'" mode="aspectFill"></image>
-		<text class="title">实高自助贴贴墙</text>
+		<text class="title">自助贴贴墙</text>
 		<text class="inline-title">Developed by zzsqwq</text>
 		<!-- <view class="fui-page__spacing">
 			<view class="fui-menu__wrap fui-align__center">
@@ -54,7 +54,7 @@
 				</view>
 			</fui-list-cell>
 		</view>
-		<fui-footer isFixed :navigate="navigate" text="Copyright © 2021-2023 胶州实验自助贴贴墙"></fui-footer>
+		<fui-footer isFixed :navigate="navigate" text="Copyright © 2021-2023 自助贴贴墙"></fui-footer>
 	</view>
 </template>
 
