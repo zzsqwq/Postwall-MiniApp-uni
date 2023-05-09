@@ -4,7 +4,7 @@ export default {
         console.log('App Launch')
         // 开启 debug
         qq.setEnableDebug({
-            enableDebug: true
+            enableDebug: false
         })
         // this.login().then((res) => {
         //     console.log(res)

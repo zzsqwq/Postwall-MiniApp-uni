@@ -79,7 +79,7 @@
                 </template>
             </fui-notice-bar>
         </view>
-        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择平台"
+        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择对应学校"
                     @confirm="schoolSelectorConfirm" @cancel="schoolSelectorCancel"></fui-select>
     </view>
 </template>
@@ -152,32 +152,7 @@ export default {
         // Do some initialize when page load.
         console.log("Page loaded.")
         // Init token and isAdmin
-        let school = options.school || null;
-        console.log("Options is:", options)
-        console.log("Options School is:", school)
-        await app.login(school).then(res => {
-            this.isAdmin = res.isAdmin;
-            this.token = res.token;
-            this.school = res.school;
-            console.log("school is", this.school)
-            this.schoolName = res.schoolName;
-            // Log
-            console.log("Login success.", res);
-        }).catch(err => {
-            console.error("Login failed.", err);
-            uni.showModal({
-                title: '登陆失败',
-                content: err + "，点击确认查看指引。",
-                showCancel: true,
-                success: (res) => {
-                    if (res.confirm) {
-                        uni.navigateTo({
-                            url: '/pages/intro/intro'
-                        });
-                    }
-                }
-            });
-        });
+        await this.initToken();
         // Checkup update
         this.checkUpdates();
         // Setup share menu
@@ -215,7 +190,7 @@ export default {
         console.log("Page unload.")
     },
     onPullDownRefresh() {
-        this.refresh();
+        this.refresh(true);
         uni.stopPullDownRefresh({
             success: (res) => {
                 uni.showToast({
@@ -272,7 +247,7 @@ export default {
                             this.school = school;
                             this.schoolName = this.schoolItems[event.index].text;
                             uni.setStorageSync("school", school);
-                            // this.refresh();
+                            this.refresh(false);
                         } else {
                             throw res.data.msg;
                         }
@@ -467,23 +442,57 @@ export default {
                 console.error(err);
             })
         },
-        refresh() {
-            const imageList = this.imageList;
-            const submitList = this.submitList;
-            imageList.splice(0, imageList.length);
-            submitList.splice(0, submitList.length);
-            this.$refs.upload.urls = imageList
-            this.getAvailableTypes();
-            this.setData({
-                postType: '提问',
-                postTitle: '',
-                postText: '',
-                postContactQQ: '',
-                postContactWechat: '',
-                postContactPhone: '',
-                imageList: imageList,
-                submitList: submitList
+        async initToken() {
+            let option = uni.getLaunchOptionsSync();
+            console.log("Launch options:", option)
+            let school = option.query.school || null;
+            console.log("Options is:", option)
+            console.log("Options School is:", school)
+            await app.login(school).then(res => {
+                this.isAdmin = res.isAdmin;
+                this.token = res.token;
+                this.school = res.school;
+                console.log("school is", this.school)
+                this.schoolName = res.schoolName;
+                // Log
+                console.log("Login success.", res);
+            }).catch(err => {
+                console.error("Login failed.", err);
+                uni.showModal({
+                    title: '登陆失败',
+                    content: err + "，点击确认查看指引。",
+                    showCancel: true,
+                    success: (res) => {
+                        if (res.confirm) {
+                            uni.navigateTo({
+                                url: '/pages/intro/intro'
+                            });
+                        }
+                    }
+                });
             });
+        },
+        refresh(clear) {
+            if(clear) {
+                const imageList = this.imageList;
+                const submitList = this.submitList;
+                imageList.splice(0, imageList.length);
+                submitList.splice(0, submitList.length);
+                this.$refs.upload.urls = imageList
+                this.getAvailableTypes();
+                this.setData({
+                    postType: '提问',
+                    postTitle: '',
+                    postText: '',
+                    postContactQQ: '',
+                    postContactWechat: '',
+                    postContactPhone: '',
+                    imageList: imageList,
+                    submitList: submitList
+                });
+            }
+            // Reinit token
+            this.initToken();
 
             // Get Notice
             this.getNotice();
@@ -606,7 +615,7 @@ export default {
 
             uni.showModal({
                 title: '投稿确认提示',
-                content: '请确认投稿内容中不包含暴力、谩骂、引战、色情、政治等信息。\n\n如内容涉及他/她人个人信息、肖像等请征得对方同意。\n\n可在查看订单页面查看或右滑取消、删除已发订单。',
+                content: '订单将投递至' + this.schoolName +  '贴贴墙\n\n请确认投稿内容中不包含暴力、谩骂、引战、色情、政治等信息。\n\n如内容涉及他/她人个人信息、肖像等请征得对方同意。\n\n可在查看订单页面查看或右滑取消、删除已发订单。',
                 confirmText: '是',
                 confirmColor: '#00CAFC',
                 cancelText: '否',
