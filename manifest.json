@@ -75,6 +75,10 @@
         "downloadFile" : 10000
     },
     "mp-qq" : {
-        "appid" : "1112006301"
+        "appid" : "1112006301",
+        "setting" : {
+            "es6" : true,
+            "urlCheck" : false
+        }
     }
 }

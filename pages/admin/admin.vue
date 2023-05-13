@@ -181,9 +181,14 @@ export default {
             index: 1
         }); // If allPostList has changed, refresh
         let school = uni.getStorageSync('school');
+        let hasNewPost = uni.getStorageSync('hasNewPost');
         if(school !== this.school && this.school !== undefined) {
             this.school = school;
             this.refresh(true);
+        } else {
+            if(hasNewPost) {
+                this.refresh(true);
+            }
         }
 
     },
@@ -280,15 +285,33 @@ export default {
 
         async refresh(isReload) {
             // Init token and isAdmin
-            let option = uni.getLaunchOptionsSync();
-            console.log("Launch options:", option)
-            let school = option.query.school || null;
+            let use_option = uni.getStorageSync('use_option');
+            if(use_option === null) {
+                use_option = true;
+            }
+            let school = this.school === undefined ? null : this.school;
+            if(use_option) {
+                let option = uni.getLaunchOptionsSync();
+                console.log("Launch options:", option)
+                school = option.query.school || null;
+                console.log("Options is:", option)
+                console.log("Options School is:", school)
+            }
             await app.login(school).then(res => {
                 this.isAdmin = res.isAdmin;
                 this.token = res.token;
                 this.school = res.school;
                 this.schoolName = res.schoolName;
 
+                if(this.school === 'invalid'){
+                    this.school = null;
+                    this.schoolName = null;
+                    uni.showModal({
+                        title: '未绑定学校',
+                        content: "当前未绑定学校，请先绑定学校。",
+                        showCancel: false,
+                    });
+                }
                 // Log
                 console.log("Login success.", res);
             }).catch(err => {
@@ -387,6 +410,14 @@ export default {
         },
 
         toQzone() {
+            if(!this.school || this.school === 'invalid') {
+                uni.showModal({
+                    title: '未绑定学校',
+                    content: "当前未绑定学校，请先绑定学校。",
+                    showCancel: false,
+                });
+                return;
+            }
             let medias = [];
             const isSelected = this.isSelected;
             let nowIndex = 1;
@@ -750,6 +781,7 @@ export default {
                     url: "/posts/" + post.postId,
                     method: "DELETE",
                 }).then(res => {
+                    console.log("Res is res", res)
                     if (res.data.code === 200) {
                         postList.splice(i, 1);
                     }
@@ -765,6 +797,11 @@ export default {
                         icon: 'success',
                         duration: 500
                     });
+                    this.setData({
+                        postList: postList
+                    });
+                    // TODO: not refresh
+                    this.refresh(true);
                 })
                 .catch((error) => {
                     console.error('Delete product error!', error);
@@ -774,12 +811,6 @@ export default {
                         duration: 500
                     });
                 });
-            this.setData({
-                postList: postList
-            });
-            // TODO: not refresh
-
-            this.refresh(true);
         },
 
         switchToRecently() {

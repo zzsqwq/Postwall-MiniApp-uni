@@ -31,8 +31,8 @@
         <fui-input required clearable placeholder="不多于六个字" radius="100rpx" maxlength="6" v-model="postTitle">
         </fui-input>
         <view class="fui-section__title">内容文本*</view>
-        <fui-textarea required isCounter autoHeight maxlength="-1" placeholder="请勿包含暴力，辱骂等限流内容，字数不限。"
-                      minHeight="180rpx"
+        <fui-textarea required isCounter autoHeight maxlength="-1" :placeholder="schoolSelectorShow? '' :'请勿包含暴力，辱骂等限流内容，字数不限。'"
+                      minHeight="180rpx" :disabled="schoolSelectorShow"
                       v-model="postText"></fui-textarea>
         <view class="fui-section__title">选择图片（点击图片可预览）</view>
         <view class="upload__spacing">
@@ -79,8 +79,8 @@
                 </template>
             </fui-notice-bar>
         </view>
-        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择对应学校"
-                    @confirm="schoolSelectorConfirm" @cancel="schoolSelectorCancel"></fui-select>
+        <fui-select :show="schoolSelectorShow" :options="schoolItems" title="请选择对应学校" :maskClosable="true"
+                    @confirm="schoolSelectorConfirm" @close="schoolSelectorCancel"></fui-select>
     </view>
 </template>
 
@@ -167,7 +167,6 @@ export default {
         this.getBanner();
         // Get isBanned
         this.getIsBanned();
-
         // Delete abundant images
         this.deleteAbundantFiles()
         // Get schools
@@ -180,6 +179,7 @@ export default {
     onShow() {
         // Do something when page show.
         console.log("Page show.")
+        uni.setStorageSync('hasNewPost', false);
     },
     onHide() {
         // Do something when page hide.
@@ -246,7 +246,10 @@ export default {
                             });
                             this.school = school;
                             this.schoolName = this.schoolItems[event.index].text;
+                            console.log("School is", school)
+                            console.log("SchoolName is", this.schoolName)
                             uni.setStorageSync("school", school);
+                            uni.setStorageSync("use_option", false);
                             this.refresh(false);
                         } else {
                             throw res.data.msg;
@@ -264,14 +267,12 @@ export default {
             this.schoolSelectorShow = false;
         },
         schoolSelectorCancel(event) {
-            console.log("Event is ", event)
             this.schoolSelectorShow = false;
         },
         getSchools() {
             let items = []
             this.http.get("/config/schools")
                 .then((res) => {
-                    console.log("Get schools success.", res);
                     if (res.statusCode === 200) {
                         let data = res.data.data;
                         let tasks = []
@@ -342,7 +343,6 @@ export default {
         },
         getNotice() {
             this.http.get("/config/notice").then(res => {
-                console.log("Get notice success.", res);
                 if (res.statusCode === 200 && res.data.data !== "") {
                     this.noticeShow = true;
                     this.noticeStr = res.data.data;
@@ -351,7 +351,6 @@ export default {
         },
         getBanner() {
             this.http.get("/file/banners").then(res => {
-                console.log("Get banner success.", res);
                 if (res.data.data.length !== 0) {
                     let newItems = []
                     let banners = res.data.data
@@ -361,7 +360,6 @@ export default {
                                 key: banners[i]
                             }
                         }).then(res => {
-                            console.log("Get banner url success.", res);
                             uni.downloadFile({
                                 url: res.data.data,
                                 success: (res) => {
@@ -443,32 +441,44 @@ export default {
             })
         },
         async initToken() {
-            let option = uni.getLaunchOptionsSync();
-            console.log("Launch options:", option)
-            let school = option.query.school || null;
-            console.log("Options is:", option)
-            console.log("Options School is:", school)
+            let use_option = uni.getStorageSync('use_option');
+            if(use_option === null) {
+                use_option = true;
+            }
+            let school = this.school === undefined ? null : this.school;
+            if(use_option) {
+                let option = uni.getLaunchOptionsSync();
+                console.log("Launch options:", option)
+                school = option.query.school || null;
+                console.log("Options is:", option)
+                console.log("Options School is:", school)
+            }
             await app.login(school).then(res => {
                 this.isAdmin = res.isAdmin;
                 this.token = res.token;
                 this.school = res.school;
                 console.log("school is", this.school)
                 this.schoolName = res.schoolName;
+                if(this.school === 'invalid'){
+                    this.school = null;
+                    this.schoolName = null;
+                    uni.showModal({
+                        title: '未绑定学校',
+                        content: "当前未绑定学校，请先绑定学校。",
+                        showCancel: false,
+                        success: (res) => {
+                            this.schoolSelectorShow = true;
+                        }
+                    });
+                }
                 // Log
                 console.log("Login success.", res);
             }).catch(err => {
                 console.error("Login failed.", err);
-                uni.showModal({
-                    title: '登陆失败',
-                    content: err + "，点击确认查看指引。",
-                    showCancel: true,
-                    success: (res) => {
-                        if (res.confirm) {
-                            uni.navigateTo({
-                                url: '/pages/intro/intro'
-                            });
-                        }
-                    }
+                uni.showToast({
+                    title: '登录失败，请重启小程序重试',
+                    icon: 'none',
+                    duration: 1000
                 });
             });
         },
@@ -506,7 +516,9 @@ export default {
             const timestamp = new Date().getTime();
             let fs = uni.getFileSystemManager();
             let imageList = this.imageList;
-            let submitList = this.submitList;
+            // let submitList = this.submitList;
+            // 长度为 imageList 的 submitList
+            let submitList = new Array(imageList.length);
             let uploadTasks = [];
 
             for (let i = 0; i < imageList.length; i++) {
@@ -518,7 +530,7 @@ export default {
                 }).then(res => {
                     let url = res.data.data.url;
                     let key = res.data.data.key;
-                    submitList.push(key);
+                    submitList[i] = key;
                     return uni.request({
                         url: url,
                         method: 'PUT',
@@ -528,10 +540,17 @@ export default {
                     console.error(err);
                 })
                 uploadTasks.push(task);
+                // await task.then(res => {
+                //     console.log("Upload file ", i, "success.", res)
+                // }).catch(err => {
+                //     console.error(err);
+                // })
             }
 
             return await Promise.all(uploadTasks).then((responses) => {
                 console.log('uploadTasks responses is ', responses);
+                this.submitList = submitList;
+                console.log("submitList is ", this.submitList);
             });
         },
         /**
@@ -634,7 +653,7 @@ export default {
                                         postType: postType,
                                         postTitle: postTitle,
                                         postContent: postContent,
-                                        imageList: submitList,
+                                        imageList: this.submitList,
                                         contactQQ: postContactQQ,
                                         contactWechat: postContactWechat,
                                         contactTelephone: postContactPhone,
@@ -652,6 +671,7 @@ export default {
                                 uni.showTabBarRedDot({
                                     index: 1
                                 });
+                                uni.setStorageSync('hasNewPost', true);
                             })
                             .catch((error) => console.error(error));
                         let submitEndTime = new Date().getTime();
