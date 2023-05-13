@@ -2,7 +2,7 @@
 
 Uni-app 版本的小程序发单工具，可扫描右侧二维码体验
 
-使用 [FirstUI](https://github.com/FirstUI/FirstUI)，后端使用腾讯云开发 CloudBase，暂时不好私人部署，仅供参考
+使用 [FirstUI](https://github.com/FirstUI/FirstUI)，后端使用 Java [Spring Boot](https://spring.io)，暂未开源
 
 ![demo](assets/demo.png)
 
