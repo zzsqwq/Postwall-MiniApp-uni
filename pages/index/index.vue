@@ -1,5 +1,5 @@
 <template>
-    <view class="fui-page_bd">
+    <view class="fui-page_bd" :class="{'fui-notice__pt':noticeShow}">
         <!-- 		<fui-swiper-dot :items="items" :current="current">
           <swiper class="fui-banner__wrap" @change="swiperChange" circular :indicator-dots="false" autoplay
             :interval="4000" :duration="150">
@@ -8,20 +8,20 @@
             </swiper-item>
           </swiper>
         </fui-swiper-dot> -->
-        <view :class="{'fui-notice__pt':noticeShow}">
-            <fui-swiper-dot :items="items" :current="current">
-                <swiper previous-margin="60rpx" next-margin="60rpx" class="fui-banner__box" @change="swiperChange"
-                        circular :indicator-dots="false" autoplay :interval="5000" :duration="150">
-                    <swiper-item v-for="(item, index) in items" :key="index">
-                        <!-- <view class="fui-banner__cell" :class="{'fui-item__scale':current!==index}"
-                          :style="{background:item.img}">{{ item.desc }}</view> -->
-                        <image class="fui-banner__cell" :class="{'fui-item__scale':current!==index}" :src="item.image"
-                               mode="aspectFill"></image>
-                    </swiper-item>
-                </swiper>
-            </fui-swiper-dot>
-        </view>
-        <view class="fui-section__title">投稿类型*</view>
+<!--        <view :class="{'fui-notice__pt':noticeShow}">-->
+<!--            <fui-swiper-dot :items="items" :current="current">-->
+<!--                <swiper previous-margin="60rpx" next-margin="60rpx" class="fui-banner__box" @change="swiperChange"-->
+<!--                        circular :indicator-dots="false" autoplay :interval="5000" :duration="150">-->
+<!--                    <swiper-item v-for="(item, index) in items" :key="index">-->
+<!--                        &lt;!&ndash; <view class="fui-banner__cell" :class="{'fui-item__scale':current!==index}"-->
+<!--                          :style="{background:item.img}">{{ item.desc }}</view> &ndash;&gt;-->
+<!--                        <image class="fui-banner__cell" :class="{'fui-item__scale':current!==index}" :src="item.image"-->
+<!--                               mode="aspectFill"></image>-->
+<!--                    </swiper-item>-->
+<!--                </swiper>-->
+<!--            </fui-swiper-dot>-->
+<!--        </view>-->
+        <view class="fui-section__title" >投稿类型*</view>
         <view style="margin-left: 32rpx;">
             <fui-data-tag :options="postTypeArray" v-model="postType" activeColor="#465CFF" borderColor="#465CFF" mark
                           radius="12" markColor="#465CFF" size="26"></fui-data-tag>
@@ -30,10 +30,13 @@
         <!--        <fui-input required clearable placeholder="不多于六个字" radius="100rpx" v-model="postTitle" @input="finishTitle">-->
         <fui-input required clearable placeholder="不多于六个字" radius="100rpx" maxlength="6" v-model="postTitle">
         </fui-input>
-        <view class="fui-section__title">内容文本*</view>
-        <fui-textarea required isCounter autoHeight maxlength="-1" :placeholder="schoolSelectorShow? '' :'请勿包含暴力，辱骂等限流内容，字数不限。'"
-                      minHeight="180rpx" :disabled="schoolSelectorShow"
-                      v-model="postText"></fui-textarea>
+        <view class="list-cells">
+            <view class="fui-section__title">内容文本* (无法滑动请点击右侧)</view>
+            <fui-switch checked scaleRatio="0.45" color="#FF0000" @change="textCheck"></fui-switch>
+        </view>
+        <fui-textarea v-if="isDisplayTextarea" required isCounter autoHeight maxlength="-1" :placeholder="schoolSelectorShow? '' :'请勿包含暴力，辱骂等限流内容，字数不限。若无法滑动请点击上方隐藏输入栏。'"
+                          minHeight="180rpx" :disabled="schoolSelectorShow"
+                          v-model="postText"></fui-textarea>
         <view class="fui-section__title">选择图片（点击图片可预览）</view>
         <view class="upload__spacing">
             <fui-upload background="#333" addColor="#d1d1d1" :fileList="imageList" ref="upload"></fui-upload>
@@ -139,10 +142,11 @@ export default {
                 desc: '欢迎加入我们！',
                 image: 'cloud://postwall-4gy7eykl559a475a.706f-postwall-4gy7eykl559a475a-1300413137/banner/BDFFBACD8C9D6651B62C7AB705862A5C.png'
             },],
-            noticeShow: false,
+            noticeShow: true,
             noticeStr: "",
             schoolSelectorShow: false,
-            schoolItems: []
+            schoolItems: [],
+            isDisplayTextarea: true
         };
     },
     onShareAppMessage() {
@@ -164,7 +168,7 @@ export default {
         // Get Notice
         this.getNotice();
         // Get banner
-        this.getBanner();
+        // this.getBanner();
         // Get isBanned
         this.getIsBanned();
         // Delete abundant images
@@ -202,8 +206,12 @@ export default {
         });
     },
     methods: {
+        textCheck(event) {
+            let value = event.detail.value;
+            this.isDisplayTextarea = value
+        },
         schoolSelectorConfirm(event) {
-            console.log("this is admin", this.isAdmin)
+            // console.log("this is admin", this.isAdmin)
             if (this.isAdmin) {
                 uni.showModal({
                     title: '管理员模式',
@@ -231,13 +239,13 @@ export default {
                     this.schoolSelectorShow = false;
                     return;
                 }
-                console.log("School is", school)
+                // console.log("School is", school)
                 this.http.post("/users/bindSchool", {
                     data: {
                         school: school
                     }
                 }).then((res) => {
-                        console.log("Bind school success.", res);
+                        // console.log("Bind school success.", res);
                         if (res.statusCode === 200) {
                             uni.showToast({
                                 title: '切换成功，当前学校为' + this.schoolItems[event.index].text,
@@ -246,8 +254,8 @@ export default {
                             });
                             this.school = school;
                             this.schoolName = this.schoolItems[event.index].text;
-                            console.log("School is", school)
-                            console.log("SchoolName is", this.schoolName)
+                            // console.log("School is", school)
+                            // console.log("SchoolName is", this.schoolName)
                             uni.setStorageSync("school", school);
                             uni.setStorageSync("use_option", false);
                             this.refresh(false);
@@ -317,7 +325,7 @@ export default {
         },
         getIsBanned() {
             this.http.get("/users/isBanned").then(res => {
-                console.log("Get isBanned success.", res);
+                // console.log("Get isBanned success.", res);
                 if (res.statusCode === 200) {
                     this.isBanned = res.data.data;
                 }
@@ -348,6 +356,9 @@ export default {
                     this.noticeStr = res.data.data;
                 }
             })
+            if(this.noticeStr === '') {
+                this.noticeShow = false;
+            }
         },
         getBanner() {
             this.http.get("/file/banners").then(res => {
@@ -448,10 +459,10 @@ export default {
             let school = this.school === undefined ? null : this.school;
             if(use_option) {
                 let option = uni.getLaunchOptionsSync();
-                console.log("Launch options:", option)
+                // console.log("Launch options:", option)
                 school = option.query.school || null;
-                console.log("Options is:", option)
-                console.log("Options School is:", school)
+                // console.log("Options is:", option)
+                // console.log("Options School is:", school)
             }
             await app.login(school).then(res => {
                 this.isAdmin = res.isAdmin;
@@ -505,9 +516,9 @@ export default {
             this.initToken();
 
             // Get Notice
-            this.getNotice();
+            // this.getNotice();
             // Get banner
-            this.getBanner();
+            // this.getBanner();
             // Get isBanned
             this.getIsBanned();
         },
@@ -548,9 +559,9 @@ export default {
             }
 
             return await Promise.all(uploadTasks).then((responses) => {
-                console.log('uploadTasks responses is ', responses);
+                // console.log('uploadTasks responses is ', responses);
                 this.submitList = submitList;
-                console.log("submitList is ", this.submitList);
+                // console.log("submitList is ", this.submitList);
             });
         },
         /**
@@ -698,7 +709,7 @@ export default {
                 sizeType: ['original', 'compressed'],
                 count: 9 - imageList.length,
                 success: (res) => {
-                    console.log(res);
+                    // console.log(res);
                     imageList = imageList.concat(res.tempFilePaths);
                     this.setData({
                         imageList: imageList
@@ -718,7 +729,7 @@ export default {
         deleteImage(e) {
             let imageList = this.imageList;
             let index = e.target.dataset.index;
-            console.log('Delete image index is ', index);
+            // console.log('Delete image index is ', index);
             imageList.splice(index, 1);
             this.setData({
                 imageList: imageList
@@ -742,6 +753,8 @@ page {
 
 .fui-section__title {
     margin-left: 32rpx;
+    margin-right: 32rpx;
+    /*display: inline-block;*/
 }
 
 .fui-notice__pt {
@@ -801,6 +814,14 @@ page {
     font-weight: 600;
     border-radius: 24rpx;
     transition: transform .1s linear;
+}
+
+.list-cells {
+    margin-top: 30rpx;
+    margin-right: 30rpx;
+    display: flex;
+    /*align-items: center;*/
+    /*justify-content: space-between;*/
 }
 
 .fui-item__scale {

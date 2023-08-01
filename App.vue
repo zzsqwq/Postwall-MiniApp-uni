@@ -6,6 +6,16 @@ export default {
         qq.setEnableDebug({
             enableDebug: false
         })
+        // let version = qq.getEnvVersion()
+        // if (version === 'develop') {
+        //     qq.setEnableDebug({
+        //         enableDebug: true
+        //     })
+        // } else {
+        //     qq.setEnableDebug({
+        //         enableDebug: false
+        //     })
+        // }
         // this.login().then((res) => {
         //     console.log(res)
         // }).catch((err) => {
@@ -13,7 +23,6 @@ export default {
         // })
     },
     onError: function () {
-        console.log(msg)
     },
     onShow: function () {
     },
@@ -55,7 +64,7 @@ export default {
                                 if (res.data.code !== 200) {
                                     reject(res.data.msg)
                                 } else {
-                                    console.log("Login res data", res.data.data)
+                                    // console.log("Login res data", res.data.data)
                                     uni.setStorageSync('token', res.data.data.token)
                                     uni.setStorageSync('isAdmin', res.data.data.isAdmin)
                                     uni.setStorageSync('school', res.data.data.school)
