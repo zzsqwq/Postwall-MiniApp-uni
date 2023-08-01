@@ -3,29 +3,7 @@
 		<image class="logo" :src="'https://q1.qlogo.cn/g?b=qq&nk=2825467691&s=640'" mode="aspectFill"></image>
 		<text class="title">自助贴贴墙</text>
 		<text class="inline-title">Developed by zzsqwq</text>
-		<!-- <view class="fui-page__spacing">
-			<view class="fui-menu__wrap fui-align__center">
-				<view class="fui-menu__item" v-for="(item,index) in menus" :key="index">
-					<button open-type="feedback" class="fui-btn__feedback" v-if="index===1"></button>
-					<button open-type="share" class="fui-btn_feedback" v-if="index===0" :share-mode="['qq', 'qzone']"></button>
-					<button open-type="openGroupProfile" group-id="421976351" class="fui-btn_feedback" v-if="index===2"></button>
-					<view class="fui-menu__img fui-flex__center" :style="{background:item.background}">
-						<image :src="`https://res.firstui.cn/static/images/my/light/icon_${item.src}_3x.png`"
-							mode="widthFix"></image>
-					</view>
-					<text>{{item.text}}</text>
-				</view>
-			</view>
-		</view> -->
 		<view class="fui-list__view">
-			<!-- 		<fui-list-cell arrow :padding="[0,'32rpx']" :bottomBorder="false" radius="16rpx" marginTop="24"
-				v-for="(item,index) in links" :key="index" :index="index" @click="getLink">
-				<button class="fui-list__item fui-align__center">
-					<image class="fui-item__icon" :src="`/static/images/website/light/icon_${item.img}_3x.png`"></image>
-					<text>{{item.name}}</text>
-				</button
-				>
-			</fui-list-cell> -->
 			<fui-list-cell arrow :padding="[0,'32rpx']" :bottomBorder="false" radius="16rpx" marginTop="24"
 				@click="navigateToDeclaration">
 				<view class="fui-list__item fui-align__center">

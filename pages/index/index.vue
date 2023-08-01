@@ -1,26 +1,5 @@
 <template>
     <view class="fui-page_bd" :class="{'fui-notice__pt':noticeShow}">
-        <!-- 		<fui-swiper-dot :items="items" :current="current">
-          <swiper class="fui-banner__wrap" @change="swiperChange" circular :indicator-dots="false" autoplay
-            :interval="4000" :duration="150">
-            <swiper-item v-for="(item,index) in items" :key="index">
-              <view class="fui-banner__item" :style="{background:item.background}">胶州实验中学贴贴墙</view>
-            </swiper-item>
-          </swiper>
-        </fui-swiper-dot> -->
-<!--        <view :class="{'fui-notice__pt':noticeShow}">-->
-<!--            <fui-swiper-dot :items="items" :current="current">-->
-<!--                <swiper previous-margin="60rpx" next-margin="60rpx" class="fui-banner__box" @change="swiperChange"-->
-<!--                        circular :indicator-dots="false" autoplay :interval="5000" :duration="150">-->
-<!--                    <swiper-item v-for="(item, index) in items" :key="index">-->
-<!--                        &lt;!&ndash; <view class="fui-banner__cell" :class="{'fui-item__scale':current!==index}"-->
-<!--                          :style="{background:item.img}">{{ item.desc }}</view> &ndash;&gt;-->
-<!--                        <image class="fui-banner__cell" :class="{'fui-item__scale':current!==index}" :src="item.image"-->
-<!--                               mode="aspectFill"></image>-->
-<!--                    </swiper-item>-->
-<!--                </swiper>-->
-<!--            </fui-swiper-dot>-->
-<!--        </view>-->
         <view class="fui-section__title" >投稿类型*</view>
         <view style="margin-left: 32rpx;">
             <fui-data-tag :options="postTypeArray" v-model="postType" activeColor="#465CFF" borderColor="#465CFF" mark
