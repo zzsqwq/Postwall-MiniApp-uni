@@ -11,9 +11,9 @@
         </fui-input>
         <view class="list-cells">
             <view class="fui-section__title">内容文本* (无法滑动请点击右侧)</view>
-            <fui-switch checked scaleRatio="0.45" color="#FF0000" @change="textCheck"></fui-switch>
+            <fui-switch checked scaleRatio="0.6" color="#FF0000" @change="textCheck"></fui-switch>
         </view>
-        <fui-textarea v-if="isDisplayTextarea" required isCounter autoHeight maxlength="-1" :placeholder="schoolSelectorShow? '' :'请勿包含暴力，辱骂等限流内容，字数不限。若无法滑动请点击上方隐藏输入栏。'"
+        <fui-textarea v-if="isDisplayTextarea && !schoolSelectorShow" required isCounter autoHeight maxlength="-1" :placeholder="schoolSelectorShow? '' :'请勿包含暴力，辱骂等限流内容，字数不限。若无法滑动请点击上方隐藏输入栏。'"
                           minHeight="180rpx" :disabled="schoolSelectorShow"
                           v-model="postText"></fui-textarea>
         <view class="fui-section__title">选择图片（点击图片可预览）</view>
